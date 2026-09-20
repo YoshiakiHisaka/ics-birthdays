@@ -1,0 +1,39 @@
+name: build-ics
+
+on:
+  schedule:
+    - cron: "17 3 */14 * *"      
+  workflow_dispatch:
+  push:
+    paths:
+      - "scripts/build_ics.py"
+      - "data/overrides.json"
+      - ".github/workflows/build-ics.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ics
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Generate ICS
+        run: python3 scripts/build_ics.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- docs/genshin-birthdays.ics; then
+            echo "изменений нет"
+            exit 0
+          fi
+          git add docs/genshin-birthdays.ics
+          git commit -m "chore: update birthdays calendar"
+          git push
